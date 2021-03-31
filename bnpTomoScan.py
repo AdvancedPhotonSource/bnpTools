@@ -1,7 +1,7 @@
 '''
 This is the scan class for tomo data collection at BNP. 
 
-TO DO: add temp PV and output to logbook; remove not important lines in logbook
+TO DO: add temp PV and output to logbook; remove unimportant lines in logbook
 '''
 
 import time, os, sys
@@ -9,26 +9,96 @@ import tqdm
 from epics import caput, caget
 from time import gmtime, strftime
 import numpy as np
-import imgProcessing
+from imgProcessing import *
 
 class bnpTomoScan():
     
-    def __init__(self, scandic):
-        self.logfid = open(os.path.join(scandic['userdir'], scandic['logfile']), 'a+')
-        self.scandic = scandic
+    def __init__(self, userdir, logfile):
+        self.userdir = userdir
+        self.logfilepath = os.path.join(userdir, logfile)
+        self.logfid = open(self.logfilepath, 'a')
         self.pvs = self.definePVs()
-        
+        self.scandic = None
+    
     def logger(self, msg):
         sys.stdout.write(msg)
         sys.stdout.flush()
+        if self.logfid.closed:
+            self.logfid = open(self.logfilepath, 'a')
         self.logfid.write(msg)
         self.logfid.flush()
         
     def getCurrentTime(self):
         return strftime('%Y-%m-%d %H:%M:%S', gmtime())
     
+    def checkPtsArea(self, pts_area, label):
+        if len(pts_area) != 5:
+            raise ValueError('%s input is invalid. pts_area'\
+                             '(x-width, y-width, x-step, y-step, dwell(ms))\n'%(label))
+        
+    def checkOrgPos_0theta(self, orgPos_xyz_0theta, label):
+        if len(orgPos_xyz_0theta) != 3:
+            raise ValueError('%s input is invalid. '\
+                             '%s (x-center, y-center, z-center) at theta 0\n'%(label, label))
+    
+    def setupAngleSweepScans(self, sampleName, scans, pts_area, orgPos_xyz_0theta, BDAin):
+        # check if inputs are valid
+        for s_ in scans:
+            if (isinstance(s_, float)) | (isinstance(s_, int)):
+                pass
+            else:
+                raise ValueError('Check input parameters for scans. It should be a list of angles\n')
+        
+        self.checkPtsArea(pts_area, 'pts_area')
+        self.checkOrgPos_0theta(orgPos_xyz_0theta, 'orgPos_xyz_0theta')
+        scandic = {'scanMode': 'angleSweep', 'BDAin':BDAin, 'elm':None, 'smpInfo':sampleName,
+                   'angleSweep':{'pts_area':pts_area, 'orgPos_xyz_0theta':orgPos_xyz_0theta,
+                                 'scans': scans, 'pre_parm':['pts_area', 'orgPos_xyz_0theta'],
+                                 'parm_label':['x_width', 'y_width', 'x_step', 'y_step', 'dwell',
+                                               'x_center_Rqs', 'y_center_Rqs', 'z_value_Rqs',
+                                               'tomo_rot_Rqs']}}
+        self.scandic = scandic
+    
+    def setupBatchXRFScans(self, sampleName, scans, BDAin, smp_angle = None):
+        err_msg = 'Input parameters for scans is invalid. Scans input is a list of list.\n'\
+                  'Scans: [[x-width, y-width, x-step, y-step, dwell (ms), x-center,'\
+                  ' y-center, z-position]]\n'
+        for s_ in scans:
+            if (isinstance(s_, list)):
+                if (len(s_) == 8): pass
+                else: raise ValueError(err_msg)
+            else:
+                raise ValueError(err_msg)
+                
+        scandic = {'scanMode':'batchXRF_fixAngle', 'BDAin':BDAin, 'elm':None, 'smpInfo':sampleName, 
+                  'batchXRF_fixAngle':{'scans': scans, 'smp_angle':smp_angle,
+                                       'pre_parm':None,
+                                       'parm_label':['x_width', 'y_width', 'x_step', 'y_step',
+                                                     'dwell', 'x_center_Rqs', 'y_center_Rqs',
+                                                     'z_value_Rqs']}}
+        self.scandic = scandic
+        
+    def setupCoarseFineScans(self, sampleName, scans, pts_area_coarse, orgPos_xyz_0theta, 
+                             elm, pts_area_fine, fine_bbox = True):
+        self.checkPtsArea(pts_area_coarse, 'pts_area_coarse')
+        self.checkPtsArea(pts_area_fine, 'pts_area_fine')
+        self.checkOrgPos_0theta(orgPos_xyz_0theta, 'orgPos_xyz_0theta')
+        for s_ in scans:
+            if (isinstance(s_, float)) | (isinstance(s_, int)):
+                pass
+            else:
+                raise ValueError('Check input parameters for scans. It should be a list of angles\n')
+                
+        scandic = {'scanMode':'coarse_fine', 'elm':elm, 'smpInfo':sampleName,
+                   'coarse_fine':{'pts_area':pts_area_coarse, 'orgPos_xyz_0theta':orgPos_xyz_0theta,
+                       'scans':scans, 'pre_parm':['pts_area', 'orgPos_xyz_0theta'],
+                       'parm_label':['x_width', 'y_width', 'x_step', 'y_step', 'dwell', 
+                                    'x_center_Rqs','y_center_Rqs', 'z_value_Rqs', 'tomo_rot_Rqs'],
+                       'find_bbox':True, 'fine_pts_area':pts_area_fine}}
+        self.scandic = scandic
+    
     def definePVs(self):
-        self.logger('%s: Associate motors with PVs\n'%(self.getCurrentTime()))
+        self.logger('\n\n%s: Associate motors with PVs\n'%(self.getCurrentTime()))
         pvs = {'x_center_Rqs':'9idbTAU:SM:PX:RqsPos', 'x_center_Act':'9idbTAU:SM:PX:ActPos',
                'y_center_Rqs':'9idbTAU:SY:PY:RqsPos', 'y_center_Act':'9idbTAU:SY:PY:ActPos',
                'z_value_Rqs':'9idbTAU:SM:SZ:RqsPos', 'z_value_Act':'9idbTAU:SM:SZ:ActPos',
@@ -38,9 +108,11 @@ class bnpTomoScan():
                'x_step':'9idbBNP:scan1.P1SI', 'y_step':'9idbBNP:scan2.P1SI',
                'dwell':'9idbBNP:scanTran3.C', 'BDA_pos':'9idbTAU:UA:UX:RqsPos',
                
-               'x_motorMode':'9idbTAU:SM:Ps:xMotionChoice.VAL', 'y_motorMode':'9idbTAU:SY:Ps:yMotionChoice.VAL',
+               'x_motorMode':'9idbTAU:SM:Ps:xMotionChoice.VAL',
+               'y_motorMode':'9idbTAU:SY:Ps:yMotionChoice.VAL',
                'x_setcenter':'9idbBNP:aoRecord11.PROC', 'y_setcenter':'9idbBNP:aoRecord12.PROC',
-               'piezo_xCenter':'9idbTAU:SM:Ps:xCenter.PROC', 'piezo_yCenter':'9idbTAU:SY:Ps:yCenter.PROC',
+               'piezo_xCenter':'9idbTAU:SM:Ps:xCenter.PROC',
+               'piezo_yCenter':'9idbTAU:SY:Ps:yCenter.PROC',
                'tot_lines':'9idbBNP:scan2.NPTS', 'cur_lines':'9idbBNP:scan2.CPT',
                'temp':'9idbCRYO:CryoCon1:In_3:Temp.VAL',
                
@@ -87,7 +159,8 @@ class bnpTomoScan():
         time.sleep(1.)
 
     def setXYcenter(self):
-        self.logger('%s: Update the current position as the center of the scan.\n'%(self.getCurrentTime()))
+        self.logger('%s: Update the current position as the center of'\
+                    'the scan.\n'%(self.getCurrentTime()))
         caput(self.pvs['x_setcenter'], 1)
         caput(self.pvs['y_setcenter'], 1)
         time.sleep(0.1)
@@ -111,19 +184,40 @@ class bnpTomoScan():
         ready = 0
         rules = [0] * len(label)
         while not ready:
-            sys.stdout.write('%s: Motors not in position\n'%(self.getCurrentTime()))
+            self.logger('%s: Motors not in position\n'%(self.getCurrentTime()))
             for i, l_ in enumerate(label):
                 caput(self.pvs['%s_Rqs'%(l_)], caget(self.pvs['%s_Rqs'%(l_)]))
                 time.sleep(1)
                 pos_diff = abs(caget(self.pvs['%s_Rqs'%(l_)]) - caget(self.pvs['%s_Act'%(l_)]))
                 rules[i] = (pos_diff < mtolerance[i])
                 if rules[i]:
-                    self.logger('%s: %s motor is in position with value %.2f um\n'%(self.getCurrentTime(), l_, caget(self.pvs['%s_Rqs'%(l_)])))
+                    self.logger('%s: %s motor is in position with value'\
+                                '%.2f um\n'%(self.getCurrentTime(), l_, caget(self.pvs['%s_Rqs'%(l_)])))
             
             if all(rules):
                 ready = 1
                     
         self.logger('%s: Motors Ready \n'%(self.getCurrentTime()))
+        
+    def fileReady(self, next_sc, filepath, time_lim):
+        # Wait until file exists
+        while not os.path.exists(filepath):
+            time.sleep(1)
+
+        time_diff = 0
+        while (time_diff < time_lim):
+            time.sleep(1)
+            file_mod_time = os.stat(filepath).st_mtime
+            time_diff = int(time.time() - file_mod_time)
+            sys.stdout.write('Waiting for coarse scan file %s to be ready,'\
+                             ' file modified time: %d, time difference: %d \n'\
+                             %(next_sc, file_mod_time, time_diff))
+            
+    def imgProgFolderCheck(self):
+        img_path= os.path.join(self.userdir,'imgProg')
+        if not os.path.exists(img_path):
+            os.makedirs(img_path)
+        return img_path
 
     def execScan(self, scname, scidx, n_scns):
         self.setXYcenter()
@@ -138,7 +232,8 @@ class bnpTomoScan():
         while caget(self.pvs['run']):
             time.sleep(10)
             cline = caget(self.pvs['cur_lines'])
-            sys.stdout.write('Scanning %s (batch %d/%d): line %d/%d is done\n'%(scname, scidx+1, n_scns, cline, nlines))
+            sys.stdout.write('Scanning %s (batch %d/%d): line %d/%d is done\n'\
+                             %(scname, scidx+1, n_scns, cline, nlines))
         self.logger('%s: Finish scan: %s%s'%(self.getCurrentTime(), scname, '\n'*3))
         self.blockBeamBDA()
 
@@ -166,7 +261,7 @@ class bnpTomoScan():
         self.motorReady(label, mtolerance)
         self.execScan(scname, scidx, n_scns)
     
-    def coarseScanInit(self, params_label, params, scname, scidx, n_scns):
+    def angleSweepScanInit(self, params_label, params, scname, scidx, n_scns):
         self.blockBeamBDA()
         self.changeXYcombinedMode()
         
@@ -180,9 +275,42 @@ class bnpTomoScan():
         self.motorReady(['x_center', 'z_value'], [0.1, 0.5])
         self.execScan(scname, scidx, n_scns)
         
-#         if self.scandic['coarse_fine']['angle0_afScan']:
-#             self.logger('%s: Putting Tomo angle rotation back to 0 deg after scan\n'%(self.getCurrentTime()))
-#             self.changeTomoRotate(0) # initialize angle at 0 deg
+    def coarseFineScanInit(self, params_label, params, scname, scidx, n_scns, scan_setting):
+        self.angleSweepScanInit(parm_labels, params, scname, scidx, n_scns)
+        
+        # If find_bbox is on, perform image processing on the coarse scan to get coordinates
+        if scan_setting['find_bbox']:
+            cscan_path = os.path.join(self.userdir, 'img.dat/%s.h5'%(scname))
+            self.fileReady(scname, cscan_path, time_lim):
+            img_path = self.imgProgFolderCheck()   
+            figpath = os.path.join(img_path, 'bbox_%s.png'%(scname))
+            new_x, new_y, new_w, new_h = getROIcoordinate(cscan_path, 
+                                                          self.scandic['elm'], figpath = figpath)
+            f_scanparm = scan_setting['fine_pts_area']
+            
+            ##TODO: implement checkROIIntensity function
+            proceed = checkROIIntensity(cscan_path, self.scandic['elm'], 
+                                        [new_x, new_y, f_scanparm[0], f_scanparm[1]])
+            
+            if proceed:
+                self.logger('%.2f(width) \n %.2f(height)\n'%(new_w, new_h))
+                curr_smz = caget(self.pvs['z_value_Rqs'])
+                params = []
+                params = f_scanparm + [scan_] + [new_x, new_y, curr_smz]
+                flabels = ['x_width', 'y_width', 'x_step', 'y_step', 'dwell', 'sm_rot_Rqs',
+                              'x_center_Rqs','y_center_Rqs', 'z_value_Rqs']
+
+                next_sc = self.nextScanName(caget(self.pvs['fname_saveData']))
+                self.logger('%s Initiating fine scan %s %s\n'%('#'*20, next_sc, '#'*20))
+                self.logger('Sample temp (K): %.3f\n'%(caget(self.pvs['temp'])))
+                self.fineScanInit(flabels, params, next_sc, scidx, n_scns)
+
+            else:
+                self.logger('Extracted ROI appears to have intensity below average,'\
+                            ' suggesting a no feature region.\n Aborting the batch scan. \n')
+                ##TODO: send out an email if this happen
+                status = -1  # Flag to terminate batch scan
+
         
     def nextScanName(self, scname):
         scnumber = int(scname[7:11])
@@ -190,6 +318,7 @@ class bnpTomoScan():
         nextscname = scname
         nextscname = scname.replace(scname[7:11], nextsc_str)
         return nextscname
+        
         
     def startScan(self):
         status = 1
@@ -204,8 +333,7 @@ class bnpTomoScan():
         
         parm_labels = scan_setting['parm_label'] 
         scans = scan_setting['scans']
-       
-        
+
         for scan_idx, scan_ in enumerate(scans):
             t = self.getCurrentTime()
             self.logger('%s: Setting up %d/%d batch scan using %s mode.\n'%(t,
@@ -214,80 +342,39 @@ class bnpTomoScan():
             self.logger('%s Initiating scan %s %s\n'%('#'*20, next_sc, '#'*20))
             self.logger('Sample info: %s\n'%(self.scandic['smpInfo']))
             self.logger('Sample temp (K): %.3f\n'%(caget(self.pvs['temp'])))
-            
+
             params = []
             if type(scan_) is not list:
                 params = scanparm + [scan_]
             else:
                 params = scanparm + scan_
-            
+
             self.logger('%s: '%(self.getCurrentTime()))
             for l_, p_ in zip(parm_labels, params):
                 self.logger('%s: %.3f \t'%(l_, p_))
             self.logger('\n\n')
-                
-            if scan_mode == 'coarse':
-                self.coarseScanInit(parm_labels, params, next_sc, scan_idx, len(scans))
+
+            if scan_mode == 'angleSweep':
+                self.angleSweepScanInit(parm_labels, params, next_sc, scan_idx, len(scans))
             elif scan_mode == 'fine':
                 self.fineScanInit(parm_labels, params, next_sc, scan_idx, len(scans))
             elif scan_mode == 'batchXRF_fixAngle':
                 self.batchXRFInit(parm_labels, params, next_sc, scan_idx, len(scans))
             else:
-                self.coarseScanInit(parm_labels, params, next_sc, scan_idx, len(scans))
-                # If find_bbox is on, perform image processing on the coarse scan to get coordinates
-                if scan_setting['find_bbox']:
-                    cscan_path = os.path.join(self.scandic['userdir'], 'img.dat/%s.h5'%(next_sc))
-                    while not os.path.exists(cscan_path):
-                        time.sleep(1)
-                    
-                    time_diff = 0
-                    while (time_diff < 10):
-                        time.sleep(1)
-                        file_mod_time = os.stat(cscan_path).st_mtime
-                        time_diff = int(time.time() - file_mod_time)
-                        sys.stdout.write('Waiting for coarse scan file %s to be ready, file modified time: %d, time difference: %d \n'%(next_sc, file_mod_time, time_diff))
-                        
-                        
-                    img_path= os.path.join(self.scandic['userdir'],'imgProg')
-                    if not os.path.exists(img_path):
-                        os.makedirs(img_path)
-                        
-                    figpath = os.path.join(img_path, 'bbox_%s.png'%(next_sc))
-                    new_x, new_y, new_w, new_h = imgProcessing.getROIcoordinate(cscan_path, 
-                                                                                self.scandic['elm'], figpath = figpath)
-                    f_scanparm = scan_setting['fine_pts_area']
-                    arealim = scan_setting['area_lim']
-                    if (new_w < arealim * f_scanparm[0]) | (new_y < arealim * f_scanparm[1]):
-                        self.logger('Extract ROI corr from %s:\n %.2f(x-center),\n %.2f(y-center),\n'%(next_sc, new_x, new_y))
-                        self.logger('%.2f(width),\n %.2f(height)'%(new_w, new_h))
-                        curr_smz = caget(self.pvs['z_value_Rqs'])
-                        params = []
-                        params = f_scanparm + [scan_] + [new_x, new_y, curr_smz]
-                        flabels = ['x_width', 'y_width', 'x_step', 'y_step', 'dwell', 'sm_rot_Rqs',
-                                      'x_center_Rqs','y_center_Rqs', 'z_value_Rqs']
-
-                        next_sc = self.nextScanName(caget(self.pvs['fname_saveData']))
-                        self.logger('%s Initiating fine scan %s %s\n'%('#'*20, next_sc, '#'*20))
-                        self.fineScanInit(flabels, params, next_sc, scan_idx, len(scans))
-                        
-                    else:
-                        self.logger('ROI area from coarse scan is bigger than the set scanning area defined in fine_pts_area\n')
-                        self.logger('%s: Batch scan terminated, couldnt find proper ROI area\n'%(self.getCurrentTime()))
-                        status = -1  # Flag to terminate batch scan
-                        
+                status = self.angleSweepScanInit(parm_labels, params, next_sc, 
+                                                 scan_idx, len(scans), scan_setting)
+                
             if status == -1:
                 break
-                
+
         self.changeXYcombinedMode()
-       
         if status:          
             self.logger('%s: Complete. Congratulation!\n'%(self.getCurrentTime()))
         else:
             self.logger('%s: Batch scan termiinated\n'%(self.getCurrentTime()))
-        
-        
+
+
         self.logfid.close()
-#         input('Press Enter to Exit')
             
 
 
