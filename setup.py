@@ -25,6 +25,8 @@ setup(
         "websockets",
         "tqdm",
         "numpy",
+        "scikit-learn",
+        "pystackreg"
     ],
     # extras_require={
     #     'model_saving': ['h5py'],
