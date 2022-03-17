@@ -25,7 +25,6 @@ setup(
         "websockets",
         "tqdm",
         "numpy",
-        "scipy"
     ],
     # extras_require={
     #     'model_saving': ['h5py'],
@@ -41,7 +40,7 @@ setup(
     include_package_data=True,
     keywords=["materials", "science", "machine", "automation", "beamline"],
     classifiers=[
-        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.6",
         "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
