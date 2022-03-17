@@ -8,7 +8,7 @@ with open(os.path.join(this_dir, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="bnp_tool",
+    name="gyl-tools",
     version="0.1",
     description="Data processing toolbox for BNP data",
     long_description=long_description,
