@@ -15,7 +15,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Yanqi Luo",
     author_email="yluo89@anl.gov",
-    download_url="https://github.com/grace227/bnp_tools",
+    download_url="https://github.com/AdvancedPhotonSource/bnpTools/",
     license="MIT",
     install_requires=[
         "h5py",
