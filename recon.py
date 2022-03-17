@@ -5,17 +5,12 @@ import astra
 import numpy as np
 import scipy.io
 import matplotlib.pyplot as plt
-import os, sys
-from tqdm import tqdm
+import os, sys, h5py, json
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from bnp_tools.plotting import *
 import tifffile
 
 plt.gray()
 get_ipython().run_line_magic('matplotlib', 'inline')
-
-
-# In[ ]:
 
 
 # Set up astra to reconstruct a cross-section slice from a sinogram
@@ -74,9 +69,6 @@ def orderProjAxis(proj, angle_axis, col_axis, row_axis, elm_axis):
     return newProj
 
 
-# In[ ]:
-
-
 # Iterate through all sinogram slice and return the reconstructed volume 
 def recon(proj, angles, angle_axis, col_axis, row_axis, elm_axis, w_pixel, algorithm, 
           n_iter = None, ycenter = 0, xcenter = 0, volscale = 1):
@@ -92,8 +84,50 @@ def recon(proj, angles, angle_axis, col_axis, row_axis, elm_axis, w_pixel, algor
             r[i,j,:,:] = vslice
     return {'proj_input':oProj, 'recon':r}
 
+def sinoRecon_2DCUDA(sinogram, angles, w_pixel, algorithm='SIRT_CUDA', n_iter = 1, 
+                     ycenter = 0, xcenter = 0, volscale = 1, miniConstraint = 0):
+    n_angles, n_y = sinogram.shape
+    assert (n_angles == len(angles)), 'Dim of sinogram and angle does not match. Sinogram should have shape of (angles, voxels)'
+    
+    proj_geom = astra.create_proj_geom('parallel', w_pixel, n_y, angles)
+    proj_geom = astra.geom_postalignment(proj_geom, [ycenter, xcenter])
+    
+    vol_geom = astra.create_vol_geom(int(n_y*volscale), int(n_y*volscale))
+    proj_id = astra.create_projector('cuda', proj_geom, vol_geom)
+    
+    sinogram_id = astra.data2d.link('-sino', proj_geom, sinogram)
+    recon_id = astra.data2d.create('-vol', vol_geom)
+    
+    cfg = astra.astra_dict(algorithm)
+    cfg['ProjectorId'] = proj_id
+    cfg['ProjectionDataId'] = sinogram_id
+    cfg['ReconstructionDataId'] = recon_id
+    cfg['MinConstraint'] = miniConstraint
+    
+    algorithm_id = astra.algorithm.create(cfg)
+    
+    if n_iter is None:
+        astra.algorithm.run(algorithm_id)
+    else:
+        astra.algorithm.run(algorithm_id, n_iter)
+    return astra.data2d.get(recon_id)
 
-# In[ ]:
+
+# Iterate through all sinogram slice and return the reconstructed volume 
+def recon_CUDA(proj, angles, algorithm, angle_axis=2, col_axis = 1, row_axis = 3, elm_axis = 0, w_pixel = 1,  
+          n_iter = 300, ycenter = 0, xcenter = 0, volscale = 1):
+    oProj = orderProjAxis(proj, angle_axis = angle_axis, col_axis = col_axis, 
+                          row_axis=row_axis, elm_axis = elm_axis)
+    n_elm, n_sino, n_angle, n_row = oProj.shape
+    r = np.zeros((n_elm, n_sino, int(n_row * volscale), int(n_row * volscale)))
+    for i in range(n_elm):
+        for j in range(n_sino):
+            sino = np.array(oProj[i,j,:,:], order = 'C', dtype='float32')
+            vslice = sinoRecon_2DCUDA(sino, angles, w_pixel, algorithm, n_iter = n_iter, 
+                               ycenter = ycenter, xcenter = xcenter, volscale = volscale)
+            vslice[vslice < 0] = 0
+            r[i,j,:,:] = vslice
+    return {'proj_input':oProj, 'recon':r}
 
 
 #%% Select limited projections
@@ -285,6 +319,34 @@ def write_tiff(data, fname='tmp/data', digit=None, ext='tiff'):
         os.makedirs(dname)
     # Save the file.
     tifffile.imsave(fname, data)
+    
+    
+#%% Export data in .h5 format for visualization in Tomviz
+def makeTomvizH5(fname, data, scans, theta, xval, yval):
+    dt = h5py.string_dtype(encoding='utf-8')
+    with h5py.File(fname, 'w') as f:
+        g1 = f.create_group('exchange')
+        g1.create_dataset('data',data = data)
+        g1.create_dataset('scanName', data = scans)
+        g1.create_dataset('theta', data = theta)
+        g1.create_dataset('x_axis', data = xval)
+        g1.create_dataset('y_axis', data = yval)
+        
+def loadAlignedDataFromJson(fpath):
+    with open(fpath) as json_file:
+        data = json.load(json_file)
+
+    elms = list(data.keys())[3:]
+    angles = np.array(data['angles'], dtype = 'float')
+    a, h, w = np.array(data[elms[0]]).shape
+    elmdata = np.zeros((len(elms), a, h, w))
+    
+    for i, e in enumerate(elms):
+        elmdata[i,...] = np.array(data[e])
+    elmdata = np.moveaxis(elmdata, 1, 2)
+    p_angles = angles * np.pi / 180
+    
+    return {'elms':elms, 'elmdata':elmdata, 'angles_deg':angles, 'angle_rad':p_angles, 'stepsize':data['stepsize']}
 
 
 
