@@ -11,7 +11,7 @@ import numpy as np
 import skimage.filters
 import os
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-# import cv2
+import cv2
 
 def plotProj(bnp_data, elm, figsize=(25, 22), use_imshow=False, ncol = 8, vmax = None, n_std = 2, colorbar = False, cmap = 'RdYlBu_r'):
     nrow = int(np.ceil(len(bnp_data)/ncol))
