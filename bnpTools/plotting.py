@@ -57,10 +57,10 @@ def plotProj(bnp_data, elm, figsize=(25, 22), use_imshow=False, ncol = 8, vmax =
     plt.tight_layout()
     return fig, ax, clim
 
-def addColorBar(fig, img, ax):
+def addColorBar(fig, img, ax, orientation='vertical'):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
-    cbar = fig.colorbar(img, cax = cax, shrink=0.8)
+    cbar = fig.colorbar(img, cax = cax, orientation=orientation, shrink=0.8)
     cbar.ax.tick_params(labelsize=12)
     return cbar
 
