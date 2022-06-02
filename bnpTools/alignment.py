@@ -2,7 +2,7 @@ from skimage.registration import phase_cross_correlation
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from plotting import xrfOverlay
+from bnpTools.plotting import xrfOverlay
 from pystackreg import StackReg
 from scipy.fftpack import fft2, ifft2
 from scipy import optimize
