@@ -13,6 +13,9 @@ import os
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import cv2
 
+def addScaleBar(ax, d:'data', ss:'stepsize', sbar:'um' = 5, xpos:'% ratio of shape[1]'=0.3, ypos:'% ratio of shape[0]'=0.95, color='w'):
+    ax.errorbar(d.shape[1]*xpos, d.shape[0]*ypos, xerr = sbar / ss / 2, color = color, lw = 3)
+
 def plotProj(bnp_data, elm, figsize=(25, 22), use_imshow=False, ncol = 8, vmax = None, n_std = 2, colorbar = False, cmap = 'RdYlBu_r'):
     nrow = int(np.ceil(len(bnp_data)/ncol))
     fig,ax = plt.subplots(nrow, ncol, figsize=figsize) 
