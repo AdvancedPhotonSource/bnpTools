@@ -5,7 +5,7 @@
 
 
 import os, sys, cv2
-sys.path.append('/Users/yluo89/Box/9-BNP')
+sys.path.append('/Users/yluo89/Library/CloudStorage/Box-Box/9-BNP')
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
