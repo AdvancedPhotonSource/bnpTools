@@ -17,7 +17,7 @@ def prettyPlot(ax, addCbar=False, fig=None, ima = None, addSbar = False, ss = No
     ax.set_xticks([])
     ax.set_yticks([])
     cbar= addColorBar(fig, ima, ax) if addCbar else None
-    If addSbar: addScaleBar(ax, d, ss, sbar, xpos, ypos, color)
+    if addSbar: addScaleBar(ax, d, ss, sbar, xpos, ypos, color)
 
 def addScaleBar(ax, d:'data', ss:'stepsize', sbar:'um' = 5, xpos:'% ratio of shape[1]'=0.3, ypos:'% ratio of shape[0]'=0.95, color='w'):
     ax.errorbar(d.shape[1]*xpos, d.shape[0]*ypos, xerr = sbar / ss / 2, color = color, lw = 3)

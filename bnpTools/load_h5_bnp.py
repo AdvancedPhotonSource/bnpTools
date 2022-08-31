@@ -187,6 +187,22 @@ class load_h5_bnp():
             self.data_pd = self.data_pd.sort_values(by=['theta'])
             self.data_pd = self.data_pd.reset_index(drop=True)
                 
+
+def load_single_h5(fpath:'file path', fields:'fields to be loaded'=['XRF_roi', 'XRF_fits', 'XRF_fits_quant', 
+                                                            'x_axis', 'y_axis', 'channel_names', 
+                                                            'scaler_names', 'scalers', 'scan_time_stamp']):
+    h5dic = {}
+    with h5py.File(fpath, 'r') as dat:
+        print('Loading file: %s'%fpath)
+        k = list(dat['MAPS'].keys())
+        for c in fields:
+            if 'names' not in c:
+                d = dat['MAPS/%s'%c][:] if c in k else None
+            else:
+                d = dat['MAPS/%s'%c][:].astype(str).tolist()
+            h5dic.update({c:d})
+    return h5dic
+                
         
                 
                                 

@@ -1,0 +1,24 @@
+Metadata-Version: 2.1
+Name: gyl-tools
+Version: 0.1
+Summary: Data processing toolbox for BNP data
+Home-page: UNKNOWN
+Author: Yanqi Luo
+Author-email: yluo89@anl.gov
+License: MIT
+Download-URL: https://github.com/AdvancedPhotonSource/bnpTools/
+Keywords: materials,science,machine,automation,beamline
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Scientific/Engineering :: Information Analysis
+Classifier: Topic :: Scientific/Engineering :: Physics
+Classifier: Topic :: Scientific/Engineering :: Chemistry
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Description-Content-Type: text/markdown
+
+# Data analysis tools
+

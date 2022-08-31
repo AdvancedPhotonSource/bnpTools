@@ -1,0 +1,9 @@
+h5py
+matplotlib
+numpy
+ax-platform
+websockets
+tqdm
+numpy
+scikit-learn
+pystackreg
