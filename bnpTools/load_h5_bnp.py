@@ -203,6 +203,25 @@ def load_single_h5(fpath:'file path', fields:'fields to be loaded'=['XRF_roi', '
             h5dic.update({c:d})
     return h5dic
                 
+
+# get energy calibration parameters from overwrite files... 
+def getEngCaliParms_from_overwrite(folder:'folder path of where files stored', num_detector = 7, num_channel = 2048):
+    engCalibration = {}
+    for i in range(num_detector):
+        owf = os.path.join(folder, 'maps_fit_parameters_override.txt%d'%i)
+        with open(owf, 'r') as f:
+            offset, slope, quad = 0,0,0
+            for l in f:
+                if 'CAL_OFFSET_[E_OFFSET]:' in l:
+                    offset = float(l.split(':')[1].replace('\n', ''))
+                elif 'CAL_SLOPE_[E_LINEAR]:' in l:
+                    slope = float(l.split(':')[1].replace('\n', ''))
+                elif 'CAL_QUAD_[E_QUADRATIC]:' in l:
+                    quad = float(l.split(':')[1].replace('\n', ''))
+            xval = np.arange(0, num_channel, 1)
+            xval = offset + slope * xval + quad * (xval**2)
+            engCalibration.update({i:{'offset':offset, 'slope':slope, 'quad':quad, 'xval':xval}})
+    return engCalibration
         
                 
                                 
