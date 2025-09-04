@@ -1,4 +1,4 @@
-#!/home/beams/USERBNP/.conda/envs/py36/bin/python
+
 
 import tkinter as tk
 from tkinter import ttk
@@ -9,6 +9,8 @@ from epics import caget, caput
 import os
 import shutil
 from tkinter import font
+
+
 #-------------------add a window for input user and scan id-----------------------
 class UserinfoWindow(tk.Toplevel):
     def __init__(self,parent):
@@ -103,7 +105,7 @@ class MainWindow(tk.Frame):
         
         self.master = master
         master.title("BNP Scan")
-        self.show_user_info()
+        # self.show_user_info()
         #self.user_info_window = UserinfoWindow(self.master)
         #self.wait_window(self.user_info_window)
 
@@ -120,9 +122,11 @@ class MainWindow(tk.Frame):
         #self.show_user_info()
         
 
-    def show_user_info(self):
-        user_info_window = UserinfoWindow(self.master)
-        self.master.wait_window(user_info_window)    
+    # def show_user_info(self):
+    #     user_info_window = UserinfoWindow(self.master)
+    #     self.master.wait_window(user_info_window) 
+
+
 if __name__ == "__main__":
     #-----------------------add window for input user info and scan id-----------------
     #input_window = tk.Toplevel()

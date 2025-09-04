@@ -1,0 +1,65 @@
+# Python version requirement
+# Requires Python 3.8-3.11
+
+# Core scientific computing packages
+numpy>=1.21.0,<2.0.0
+scipy>=1.9.0
+pandas>=1.5.0
+matplotlib>=3.5.0
+scikit-learn>=1.1.0
+scikit-image>=0.19.0
+
+# Data handling and file formats
+h5py>=3.7.0
+tifffile>=2022.5.4
+Pillow>=9.0.0
+
+# Computer vision and image processing
+opencv-python>=4.6.0
+opencv-contrib-python>=4.6.0
+
+# GUI framework (tkinter is built-in with Python)
+# tkinter - built-in with Python
+
+# EPICS/PV communication
+pyepics>=3.5.0
+
+# Progress bars
+tqdm>=4.64.0
+
+# Jupyter notebook widgets (for ROI-Finder)
+ipywidgets>=8.0.0
+ipython>=8.0.0
+
+# Machine learning and neural networks
+tensorflow>=2.10.0,<2.16.0
+keras>=2.10.0
+
+# Additional scientific packages
+seaborn>=0.12.0
+openTSNE>=1.0.0
+
+# Image analysis and registration
+pystackreg>=0.2.8
+
+# Medical imaging (for openslide)
+openslide-python>=1.2.0
+
+# Visualization enhancements
+matplotlib-scalebar>=0.8.0
+
+# File handling utilities
+# ipython-filechooser>=0.6.0  # Not available - using alternative
+
+# GPU acceleration (optional - uncomment based on your CUDA version)
+# cupy-cuda11x>=9.0.0  # for CUDA 11.x
+# cupy-cuda12x>=12.0.0  # for CUDA 12.x
+
+# Tomography reconstruction (optional - may require system dependencies)
+# astra-toolbox>=2.0.0
+
+# Note: Some packages may require system-level dependencies:
+# - For openslide: libopenslide-dev (Ubuntu/Debian) or openslide-devel (CentOS/RHEL)
+# - For OpenCV: libopencv-dev (Ubuntu/Debian) or opencv-devel (CentOS/RHEL)
+# - For ASTRA: libastra-dev (Ubuntu/Debian) or astra-devel (CentOS/RHEL)
+# - For EPICS: epics-base development libraries

@@ -5,7 +5,6 @@ Created on Tue Aug  3 11:22:02 2021
 
 Construct setup frame for bnp_gui
 """
-#!/home/beams/USERBNP/.conda/envs/py36/bin/python
 
 import tkinter as tk
 from tkinter import ttk
@@ -20,20 +19,24 @@ from skimage import io
 import epics as PV
 import cv2
 import matplotlib.pyplot as plt
+
+
 class setupFrame:
     
     def Display2Data(self, Axe, x, y):  #return coordinates of a point (x,y)
         return Axe.transData.inverted().transform(np.array([(x, y)]))[0]
 
     def choose_folder(self):  #choose user folder
-        #if self.pvComm.getDir() is not None:
-         #   initialDir = os.path.join(self.pvComm.getDir(), "img.dat")  # go to img.dat folder
-          #  initialDir = (
-           #     initialDir if os.path.exists(initialDir) else self.pvComm.getDir()  #else: get dir till subdir
-            #)
-        #else:
-         #   initialDir = "/mnt/micdata1/2idd"
+        if self.pvComm.getDir() is not None:
+           initialDir = os.path.join(self.pvComm.getDir(), "img.dat")  # go to img.dat folder
+           initialDir = (
+               initialDir if os.path.exists(initialDir) else self.pvComm.getDir()  #else: get dir till subdir
+            )
+        else:
+           initialDir = "/mnt/micdata1/2idd"
+        
         self.h5_folder = tk.filedialog.askdirectory(initialdir=pvCommsubclass().user_di()) #create a dialog box that allows the user to select a directory from their file system.the initial is bnp folder
+        
         #------------------xyl: show cycle/user/folder----------------------------------------
         h5_f_component = self.h5_folder.split('/')
         start_idx = h5_f_component.index('bnp') + 1  #get the index of folder after bnp
