@@ -7,15 +7,13 @@ Function to setup scan, interact with PV mostly
 """
 #!/home/beams/USERBNP/.conda/envs/py36/bin/python
 
-from pvObjects import getPVobj, scan2RecordDetectorTrigerPVs, getEiger, definePVs
+from pvObjects import getPVobj, scan2RecordDetectorTrigerPVs, getEiger
 from misc import getCurrentTime
 import os, time, sys, datetime
 import numpy as np
-from epics import PV, caget, caput, cainfo
 
 class pvComm():
     def __init__(self, userdir = None, log = 'log.txt'):
-        self.allpvs = definePVs()    #all pvs used
         self.pvs = getPVobj()
         self.eiger = getEiger()
         if userdir is None:
@@ -23,8 +21,7 @@ class pvComm():
         else:
             self.userdir = userdir
         self.logfilepath = os.path.join(self.userdir, log)
-
-        self.logfid = open(self.logfilepath, 'a')   #create a log file
+        self.logfid = open(self.logfilepath, 'a')
             
     def logger(self, msg):
         sys.stdout.write(msg)
@@ -32,21 +29,13 @@ class pvComm():
         if self.logfid.closed:
             self.logfid = open(self.logfilepath, 'a')
         self.logfid.write(msg)
-        self.logfid.flush()   #write 'msg' to log file immdiately 
+        self.logfid.flush()
     
     def getDir(self):
-        return '/home/beams/USERBNP/scripts/graceluo/bnp_GUI/bnpGUI_noPV/log'
-        #fs = self.pvs['filesys'].pv.value
-        #fs = fs.replace('//micdata/data1', '/mnt/micdata1')
-        #return os.path.join(fs, self.pvs['subdir'].pv.value.replace('mda', ''))
+        fs = self.pvs['filesys'].pv.value
+        fs = fs.replace('//micdata/data1', '/mnt/micdata1')
+        return os.path.join(fs, self.pvs['subdir'].pv.value.replace('mda', ''))
     
-    #-----------------current directory--------------------
-    def cur_dir(self):
-        self.syspv = self.allpvs['filesys']
-        self.folder = PV(self.syspv).get()
-        return self.folder
-
-        
     def initCurLineTimer(self):
         self.pvs['cur_lines'].time_pre = datetime.datetime.now()
         self.pvs['cur_lines'].time_delta = 0
@@ -58,16 +47,13 @@ class pvComm():
         return self.pvs['cur_lines'].time_pre
     
     def getBDAx(self):
-        #return 0
-        return np.round(self.pvs['BDA_pos'].pv.value, 2)  
+        return np.round(self.pvs['BDA_pos'].pv.value, 2)
     
     def getSMAngle(self):
-        return 0
-        #return np.round(self.pvs['sm_rot_Act'].pv.value, 2)
+        return np.round(self.pvs['sm_rot_Act'].pv.value, 2)
     
     def getTomoAngle(self):
-        return 0
-        #return np.round(self.pvs['tomo_rot_Act'].pv.value, 2)
+        return np.round(self.pvs['tomo_rot_Act'].pv.value, 2)
     
     def scanPause(self):
         self.pvs['wait'].pv.put(1)
@@ -93,13 +79,12 @@ class pvComm():
             time.sleep(1)
         
     def updateDetectorTriger(self, ptychoEnable):
-        pass
-        #s = self.pvs['scan2Record']
-        #dtriger_pvs = scan2RecordDetectorTrigerPVs()
-        #s.T1PV = dtriger_pvs['scan1']
-        #s.T4PV = ''
-        #s.T2PV = dtriger_pvs['eigerAcquire'] if ptychoEnable else ''
-        #s.T3PV = dtriger_pvs['eigerFileCapture'] if ptychoEnable else ''
+        s = self.pvs['scan2Record']
+        dtriger_pvs = scan2RecordDetectorTrigerPVs()
+        s.T1PV = dtriger_pvs['scan1']
+        s.T4PV = ''
+        s.T2PV = dtriger_pvs['eigerAcquire'] if ptychoEnable else ''
+        s.T3PV = dtriger_pvs['eigerFileCapture'] if ptychoEnable else ''
 
             
     def updateEigerFileIO(self, filename, num_pts):
@@ -138,7 +123,8 @@ class pvComm():
         self.pvs['sm_rot_Act'].put_callback(theta)
     
     def blockBeamBDA(self, BDA):
-        bda_pos = BDA - 500
+        # bda_pos = BDA - 500
+        bda_pos = BDA - 700  # update this value during commissioning June 2025
         t = getCurrentTime()
         self.logger('%s: Move BDA to block position at: %.3f\n'%(t, bda_pos))
         self.pvs['BDA_pos'].put_callback(bda_pos)
@@ -237,11 +223,7 @@ class pvComm():
         for s_, v_ in zip(pvstr, pvval):
             self.pvs[s_].pv.put(v_)
             self.logger('%s: Change %s to %.3f\n' % (getCurrentTime(), s_, v_))
-    
-    def assignEng(self, pvstr, pvval):
-        self.pvs[pvstr].pv.put(pvval)
-        self.logger('%s: Change %s to %.3f\n' % (getCurrentTime(), pvstr, pvval))
-        
+            
     def assignSinglePV(self, pvstr, pvval):
         # previous logic at bnp
         # self.pvs[pvstr].pv.put(pvval)
@@ -254,8 +236,8 @@ class pvComm():
         self.logger('%s: Change %s to %.3f\n' % (getCurrentTime(), pvstr, pvval))
             
     def writeScanInit(self, mode, smpinfo, scandic):
-        next_sc = self.nextScanName()   #next scan name 'xxx.mda' from pvs
-        self.logger('%s Initiating scan %s %s\n'%('#'*20, next_sc, '#'*20)) #log: ######Initiating scan num########
+        next_sc = self.nextScanName()
+        self.logger('%s Initiating scan %s %s\n'%('#'*20, next_sc, '#'*20))
         self.logger('Sample info: %s\n'% smpinfo)
         self.logger('%s: Setting up scan using %s mode.\n'%(getCurrentTime(), mode))
         self.logger('%s: %s'%(getCurrentTime(), scandic))
@@ -276,7 +258,7 @@ class pvComm():
                             ' request: %.2f\n'%(getCurrentTime(), l, actpv.value, rqspv.value))
             return 0     
     
-    def nextScanName(self):  #return the name from pvs['basename] and pvs['nextsc']
+    def nextScanName(self):
         return '%s%s.mda'%(self.pvs['basename'].pv.value, 
                            str(self.pvs['nextsc'].pv.value).zfill(4))
     
@@ -285,48 +267,7 @@ class pvComm():
                 'y_center_Act', 'z_value_Act']]
         
 
-#-------------------------just to run cur_dir2------------------------------
-class pvCommsubclass():
-    def __init__(self):
-        pass
-    def user_folder(self):
-        #self.rootfolder = caget('9idbBNP:saveData_fileSystem')  #root till cycle
-        self.rootfolder = r'/mnt/micdata1/bnp/2023-1'
-        #self.rootfolder = self.rootfolder.replace('//micdata/data1','/mnt/micdata1')
-        #self.user = caget('9idbBNP:saveData_subDir').split('/')[0]  #user and mda
-        self.user ='test_xy9'
-        self.user_folder = os.path.join(self.rootfolder,self.user,'Coarse_images')
-        return self.user_folder
-    def scan_mda(self):
-        #self.scanmda = caget('9idbBNP:saveData_fileName')
-        self.scan1 = 'bnp_fly0001'
-        #self.scan1 = self.scanmda.split('.')[0]
-        return self.scan1
-    def user_di(self):
-        #self.rootfolder = caget('9idbBNP:saveData_fileSystem')  #root till cycle
-        self.rootfolder = r'/mnt/micdata1/bnp/2023-1'	
-        #self.rootfolder = self.rootfolder.replace('//micdata/data1','/mnt/micdata1')
-        self.user ='test_xy9'
-        #self.user = caget('9idbBNP:saveData_subDir').split('/')[0]  #user and mda
-        self.user_f = os.path.join(self.rootfolder,self.user)
-        return self.user_f
-    def user__fine_folder(self):
-        #self.rootfolder = caget('9idbBNP:saveData_fileSystem')  #root till cycle
-        self.rootfolder = r'/mnt/micdata1/bnp/2023-1'
-        #self.rootfolder = self.rootfolder.replace('//micdata/data1','/mnt/micdata1')
-        #self.user = caget('9idbBNP:saveData_subDir').split('/')[0]  #user and mda
-        self.user ='test_xy9'
-        self.user_fine_folder = os.path.join(self.rootfolder,self.user,'Fine_images')
-        return self.user_fine_folder
-    def user_h5_folder(self):
-        #self.rootfolder = caget('9idbBNP:saveData_fileSystem')  #root till cycle
-        self.rootfolder = r'/mnt/micdata1/bnp/2023-1'
-        #self.rootfolder = self.rootfolder.replace('//micdata/data1','/mnt/micdata1')
-        self.user ='test_xy9'        
-	#self.user = caget('9idbBNP:saveData_subDir').split('/')[0]  #user and mda
-        self.user_h5_folder= os.path.join(self.rootfolder,self.user,'img.dat')
-        return self.user_h5_folder
-    def next_scan_num(self):
-        self.next_scan = 1 #caget('9idbBNP:saveData_scanNumber')   #next scan read from PV
-        return self.next_scan
-        
+    
+
+    
+
