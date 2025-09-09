@@ -6,8 +6,6 @@ Created on Tue Aug  3 11:50:01 2021
 Construct scan frame
 """
 
-#!/home/beams/USERBNP/.conda/envs/py36/bin/python
-
 import tkinter as tk
 from tkinter import ttk
 from scanList import scanList
@@ -466,7 +464,9 @@ class scanFrame():
         self.scmsg = tk.Text(self.scanfrm, wrap = 'word', height = 15, width = 139)
         self.scmsg.grid(row = 24, column = 1, sticky = 'w', columnspan = 5, 
                         rowspan = 8, padx=(20,0), pady=(5,0))
-        stdoutToTextbox(self.scmsg)
+
+        #TODO: Uncomment this when the textbox is working
+        # stdoutToTextbox(self.scmsg)
         
         row = 23
         clearsclist_btn = tk.Button(self.scanfrm, text = 'Clear all', command = self.slist.clearSclist, width = 20)

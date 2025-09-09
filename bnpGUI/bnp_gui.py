@@ -24,7 +24,7 @@ class MainWindow(tk.Frame):
 if __name__ == "__main__":
     root = tk.Tk()
     gui = MainWindow(root)
-    root.geometry('1260x760')
+    root.geometry('1260x980')
     root.resizable(False, False)
     root.mainloop()
 

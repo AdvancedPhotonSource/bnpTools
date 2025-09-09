@@ -10,6 +10,14 @@ import pandas as pd
 sys.path.append('/home/beams11/USERBNP/scripts/roehrig/CoordinateTransforms/src')
 from Transform import XZT_Transform
 
+
+def limit_stringvar_length(sv, max_length=50):
+    """Limit the StringVar to a maximum length"""
+    current_value = sv.get()
+    if len(current_value) > max_length:
+        sv.set(current_value[:max_length])
+
+
 def checkEntryDigit(P):
     if (P == "") | (P == "-"):
         return True
