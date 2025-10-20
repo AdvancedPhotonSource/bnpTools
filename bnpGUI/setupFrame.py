@@ -174,7 +174,7 @@ class setupFrame:
         # Lets find the mda file that contains scan number in the mda directory
         mda_files = [i for i in os.listdir(mda_dir) if i.endswith(".mda")]
         for mda_file in mda_files:
-            if str(scan_num) in mda_file:
+            if str(scan_num)     in mda_file:
                 self.mda_filepath = os.path.join(mda_dir, mda_file)
                 break
         else:

@@ -63,9 +63,6 @@ class pvComm():
         
     def scanAbort(self):
         self.pvs['abort'].put_callback(1)
-
-    def click_diamond_det_cts(self):
-        self.pvs['diamond_det_cts_btn'].put_callback(1)
         
     def resetDetector(self, ptychoEnable):
         time.sleep(1)
@@ -89,43 +86,7 @@ class pvComm():
         s.T2PV = dtriger_pvs['eigerAcquire'] if ptychoEnable else ''
         s.T3PV = dtriger_pvs['eigerFileCapture'] if ptychoEnable else ''
 
-    def isBeamOn(self, print_status=False, beam_current_threshold=50, debug=False):
-        t = getCurrentTime()
-        if not debug:
-            mode = self.pvs['shutter_permit'].pv.get() # 0 : off and 1 : on
-            beam_current = self.pvs['beam_current'].pv.get()
-            if mode and beam_current > beam_current_threshold:
-                if print_status:
-                    print(f'{t} Beam is on. Shutter permit enabled: {mode}, Beam current: {beam_current}')
-                return True
-            else:
-                if print_status:
-                    print(f'{t} Beam is off. Shutter permit enabled: {mode}, Beam current: {beam_current}')
-                return False
-        else:
-            mode = self.pvs['machine_status_usercalc'].pv.get() # 0 : off and 1 : on
-            if mode:
-                if print_status:
-                    print(f'{t} Beam is on. Machine status usercalc: {mode}')
-                return True
-            else:
-                if print_status:
-                    print(f'{t} Beam is off. Machine status usercalc: {mode}')
-                return False
-
-
-    # def isBeamOn(self, print_status=False, cts_lim = 5000):
-    # 	cts = self.pvs['diamond_det_cts'].pv.get()
-    # 	t = getCurrentTime()
-    # 	if cts > cts_lim:
-    # 		if print_status:
-    # 			print(f'{t} Beam is on, diamond detector counts: {cts}')
-    # 		return True
-    # 	else:
-    # 		if print_status:
-    # 			print(f"{t} Beam is off, diamond detector counts: {cts}")
-    # 		return False
-
+            
     def updateEigerFileIO(self, filename, num_pts):
         self.eiger.fileIO.setFileName(filename)
         self.eiger.fileIO.AutoIncrement = 1

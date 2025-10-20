@@ -120,13 +120,7 @@ def definePVs():
             'subdir':'9idbBNP:saveData_subDir',
             'nextsc':'9idbBNP:saveData_scanNumber',
             'basename':'9idbBNP:saveData_baseName',
-
-            'machine_status':'S:ActualMode',
-            'beam_current':'S-DCCT:CurrentM',
-            'shutter_permit':'RF-ACIS:FePermit:Sect1To35IdM',
-            'diamond_det_cts_btn':'9idbBNP:3820:scaler1.CNT',
-            'diamond_det_cts':'9idbBNP:scaler2_cts2.B',
-            'machine_status_usercalc':'9idbBNP:userCalc10.VAL',
+            
             }
      return pvs
  

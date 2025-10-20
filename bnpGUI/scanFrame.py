@@ -6,6 +6,7 @@ Created on Tue Aug  3 11:50:01 2021
 Construct scan frame
 """
 
+from os import wait
 import tkinter as tk
 from tkinter import ttk
 from scanList import scanList
@@ -16,6 +17,9 @@ from scanBNP import xrfSetup, scanStart, scanFinish, getCoordinate, getMotorList
 from logger import stdoutToTextbox
 import time, datetime
 import pandas as pd
+
+MAX_YCENTER_CHECK_ATTAMP = 5
+DEBUG = False
 
 class scanFrame():
     
@@ -137,9 +141,10 @@ class scanFrame():
             self.slist.pbarInit()
             self.scan_start_time = 0
             self.scandone_var.set(False)
+            self.beamReady = False
     
     def scanExec(self):
-        # print('scan exect')
+        print('scan exect')
         scanStart(self.pvComm, float(self.bda.get()))
         # if status:
         self.pbarscval.set(0.0)
@@ -159,17 +164,31 @@ class scanFrame():
 
     def scanMonitor(self, *args, **kwargs):
         ms = 1000
+
+        # print('Scan monitor')
+        # print('Pause: ', self.pause)
+        # print('Scanning: ', self.scanning)
+        # print("beam status: ", self.pvComm.isBeamOn())
+        # print("--------------------------------")
         
         if self.pause & self.scanning:
+            # print("im here 0")
             if self.pvComm.pvs['wait_val'].pv.get() == 0:
+                # print("im here 1")
                 self.pvComm.scanPause()
                 self.monitormsg.set('Scan Pause with 1 wait flag, waiting for current line to finish')
                 time.sleep(1)
                 
             elif self.pvComm.pvs['msg1d'].pv.get() == 'SCAN Complete':
+                # print("im here 2")
                 if self.ycenter_check:
                     self.pvComm.centerPiezoY()
                     self.checkYCenterValue()
+                elif not self.beamReady:
+                    # self.pvComm.click_diamond_det_cts()
+                    self.beamReady = self.pvComm.isBeamOn(print_status=True, debug=DEBUG)
+                    if self.beamReady:
+                        self.handleBeamOn()
                 elif self.detector_resetting:   # it will enter here when detector reset is successful
                     self.checkDetectorStatus()
                 else:
@@ -178,12 +197,17 @@ class scanFrame():
                     self.resume_btn['state'] = tk.NORMAL  
                     
             elif self.pvComm.pvs['msg1d'].pv.get() != 'SCAN Complete':
+                # print("im here 3")
                 if self.ycenter_check:
-                    self.checkDetectorStatus()
+                    self.checkDetectorStatus(debug=DEBUG)
                 if self.detector_resetting:
                     self.det_reset_attemp += 1
                     self.pvComm.resetDetector(self.scdic['ptycho'])
-                    self.checkDetectorStatus()
+                    self.checkDetectorStatus(debug=DEBUG)
+                # if not self.beamReady:
+                #     self.beamReady = self.pvComm.isBeamOn()
+                #     if self.beamReady:
+                #         self.handleBeamOn()
 
         
         # when pause and not scanning 
@@ -193,6 +217,7 @@ class scanFrame():
     
         elif not self.pause:
             self.abortall_btn['state'] = tk.DISABLED
+            # self.beamReady = self.pvComm.isBeamOn()
             if self.scanclick & self.pending:
                 if not self.coordsReady:
                     self.checkFineScanCoord()
@@ -201,6 +226,11 @@ class scanFrame():
                     self.checkMotorReady()
                 elif not self.eigerReady:
                     self.checkEigerReady()
+                elif not self.beamReady:
+                    # self.pvComm.click_diamond_det_cts()
+                    self.beamReady = self.pvComm.isBeamOn(print_status=True, debug=DEBUG)
+                    ms = 10000 if not self.beamReady else 1000
+                    self.monitormsg.set('Beam is lost, can not proceed')
                 else:
                     self.scanExec()
                         
@@ -216,12 +246,18 @@ class scanFrame():
                         self.scan_start_time = datetime.datetime.now()
                         self.det_reset_attemp = 0
                         self.cline = 0
+                        self.check_ycenter_attemp = 0
                     self.pbarUpdate()
-                    self.checkDetectorStatus()
-                    self.logTempPV()
-                    self.monitormsg.set('Scanning... will be done at: %s'%self.eta_str)
-                    # try to uncomment this during commissioning June 2025
-                    self.checkYCenterValue()
+                    self.beamReady = self.pvComm.isBeamOn(debug=DEBUG)
+                
+                    if self.beamReady:
+                        self.checkDetectorStatus(debug=DEBUG)
+                        self.logTempPV()
+                        self.checkYCenterValue()
+                        self.monitormsg.set('Scanning... will be done at: %s'%self.eta_str)
+                    else:
+                        self.handleBeamOff()
+                        self.monitormsg.set('Beam is off, cannot scan')
                     
                 else:
                     self.monitormsg.set('scan is paused or has not started yet... check end station shutter')
@@ -262,13 +298,16 @@ class scanFrame():
                            cline, tline, 100-cline/tline*100))
         self.pbarscval.set(cline/tline*100)
         
-    def checkDetectorStatus(self, extra_wait = 20, max_attemp = 5):
+    def checkDetectorStatus(self, extra_wait = 20, max_attemp = 5, debug=DEBUG):
         if self.detectorMonitor.get():
             pause_status = self.pvComm.pvs["pause"].pv.value
             cline = self.pvComm.pvs["cur_lines"].pv.value
 
-            # replace in the future, using 1D time instead
-            time_check = round(self.pvComm.get1DTime()) + extra_wait
+            # time_check = round(self.pvComm.get1DTime()) + extra_wait
+            if debug:
+                time_check = float(self.detCheck_val.get())
+            else:
+                time_check = round(self.pvComm.get1DTime()) + extra_wait
             self.detCheck_val.set('%d'%time_check)
             
             # time_check = float(self.detCheck_val.get())  # getting detCheck from user
@@ -295,9 +334,9 @@ class scanFrame():
                         time.sleep(0.5)
                         
                     # self.pvComm.resetDetector()  # put it here to handle the case when 1st line hangs
-                    self.monitormsg.set('Scan hungs... Resetting detector')
                     print('line %d: time per line %.2f, reset when time larger than %.2f, number of attamp: %d'
                           %(self.cline, time_delta, time_check, self.det_reset_attemp))
+                    self.monitormsg.set('Scan hungs... Resetting detector')
                         
                 elif time_delta < time_check:
                     self.cline = cline
@@ -311,6 +350,20 @@ class scanFrame():
                 self.pvComm.initCurLineTimer()
                 self.pvComm.scanResume()
                     
+
+    def handleBeamOff(self):
+        wait_val = self.pvComm.pvs['wait_val'].pv.get()
+        if wait_val == 0:
+            self.pause = True
+            self.pvComm.scanPause()
+        self.monitormsg.set('Beam is off, cannot scan')
+    
+    def handleBeamOn(self):
+        wait_val = self.pvComm.pvs['wait_val'].pv.get()
+        if wait_val == 1:
+            self.pause = False
+            self.pvComm.scanResume()
+        self.monitormsg.set('Beam is on, resuming scan')
 
     def pauseClick(self):
         print('Pause scan thread pressed')
@@ -393,6 +446,7 @@ class scanFrame():
         self.det_reset_attemp = 0
         self.cline_time = 0
         self.single_line_time = 0
+        self.check_ycenter_attemp = 0
         self.slist = scanList(self.scanfrm, self.inputs_labels, self.calctime_out,
                  self.scanType, self.smp_name, self.bda, self.tot_time, self.ptycho, self.scanParms)
         self.insertScan = self.slist.insertScan
@@ -406,6 +460,7 @@ class scanFrame():
         self.ycenter_check = False
         self.detector_resetting = False
         self.eigerReady = False
+        self.beamReady = False
         
         self.coordsReady = 0
         self.coarse_scnum = ''
@@ -420,7 +475,10 @@ class scanFrame():
         self.recordval = None
         self.parm = {}
         self.pvComm = pvComm()
-        
+        # self.pvComm.click_diamond_det_cts()
+        self.beamReady = False
+
+
         self.pbarscmsg = tk.StringVar()
         self.pbarscmsg.set('%s'%(self.pvComm.nextScanName()))
         pbar_sc_txt = tk.Label(self.scanfrm, textvariable = self.pbarscmsg)
@@ -459,14 +517,15 @@ class scanFrame():
         self.detCheck_entry = tk.Entry(self.scanfrm, width=5, textvariable=self.detCheck_val,
                                   validate='all', validatecommand=(vcmd, "%P"))
         self.detCheck_entry.grid(row = 24, column=5, sticky='w', padx=(150,0))
-
+        
+        # Default to enable detector monitor
+        detMonitor_btn.invoke()
      
         self.scmsg = tk.Text(self.scanfrm, wrap = 'word', height = 15, width = 139)
         self.scmsg.grid(row = 24, column = 1, sticky = 'w', columnspan = 5, 
                         rowspan = 8, padx=(20,0), pady=(5,0))
-
-        #TODO: Uncomment this when the textbox is working
-        # stdoutToTextbox(self.scmsg)
+        
+        stdoutToTextbox(self.scmsg)
         
         row = 23
         clearsclist_btn = tk.Button(self.scanfrm, text = 'Clear all', command = self.slist.clearSclist, width = 20)
