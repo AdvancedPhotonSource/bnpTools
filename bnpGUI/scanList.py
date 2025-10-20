@@ -177,7 +177,6 @@ class scanList(object):
                 self.scanidx += 1
             
         else:
-            print('in here')
             sparm = [scanparm[s_] for s_ in list(self.sclist_col)]
             self.sclist.insert(parent='', index=self.scanidx, iid=self.scanidx,
                                    text='', values=tuple(sparm))

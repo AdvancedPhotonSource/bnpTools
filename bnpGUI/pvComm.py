@@ -20,16 +20,19 @@ class pvComm():
             self.userdir = self.getDir()
         else:
             self.userdir = userdir
-        self.logfilepath = os.path.join(self.userdir, log)
-        self.logfid = open(self.logfilepath, 'a')
+        # self.logfilepath = os.path.join(self.userdir, log)
+        # self.logfid = open(self.logfilepath, 'a')
             
     def logger(self, msg):
         sys.stdout.write(msg)
         sys.stdout.flush()
-        if self.logfid.closed:
-            self.logfid = open(self.logfilepath, 'a')
-        self.logfid.write(msg)
-        self.logfid.flush()
+        with open(self.logfilepath, 'a') as f:
+            f.write(msg)
+            f.flush()
+        # if self.logfid.closed:
+        #     self.logfid = open(self.logfilepath, 'a')
+        # self.logfid.write(msg)
+        # self.logfid.flush()
     
     def getDir(self):
         fs = self.pvs['filesys'].pv.value
@@ -234,9 +237,24 @@ class pvComm():
             self.centerPiezoY()
         self.pvs[pvstr].pv.put(pvval)
         self.logger('%s: Change %s to %.3f\n' % (getCurrentTime(), pvstr, pvval))
-            
+
+    def createScanLog(self):
+        next_sc = self.nextScanName()
+        log_folder = os.path.join(self.userdir, 'logs')
+        if not os.path.exists(log_folder):
+            try:
+                os.makedirs(log_folder)
+            except Exception as e:
+                print("Error creating log folder: %s"%e)
+                log_folder = userdir
+                print("Using user directory as log folder: %s"%log_folder)
+        
+        log_file = os.path.join(log_folder, '%s.log'%next_sc.replace('.mda', ''))
+        self.logfilepath = log_file
+
     def writeScanInit(self, mode, smpinfo, scandic):
         next_sc = self.nextScanName()
+        self.createScanLog()
         self.logger('%s Initiating scan %s %s\n'%('#'*20, next_sc, '#'*20))
         self.logger('Sample info: %s\n'% smpinfo)
         self.logger('%s: Setting up scan using %s mode.\n'%(getCurrentTime(), mode))

@@ -24,6 +24,7 @@ class stdoutRedirect(object):
     
 def stdoutToTextbox(textbox):
     sys.stdout = stdoutRedirect(textbox)
+
     
 class logger(object):
     def __init__(self, fpath, logtxtOnly = True):

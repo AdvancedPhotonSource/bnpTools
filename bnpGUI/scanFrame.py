@@ -34,9 +34,11 @@ class scanFrame():
     
     def scanSetup(self):
         self.record, self.recordval = self.slist.searchQueue()
+
         if self.record is not None:
             self.pause_btn['state'] = tk.NORMAL
             self.slist.pbarInit()
+            self.clear_scmsg()
             self.scan_start_time = 0
             self.scdic = {u:self.recordval[i] for i, u in enumerate(self.slist.sclist_col)}
             self.scdic.update({'bda':float(self.bda.get())})
@@ -45,7 +47,6 @@ class scanFrame():
             self.recordval[0] = self.pvComm.nextScanName()
             self.coordsReady = False
             self.eigerReady = False
-            
             
             if self.stype =='Coarse':
                 self.coarse_scnum = self.recordval[0]
@@ -376,6 +377,8 @@ class scanFrame():
         else:
             self.detCheck_entry['state'] = tk.NORMAL
 
+    def clear_scmsg(self):
+        self.scmsg.delete('1.0', tk.END)
     
     def __init__(self, tabControl, setup_tab):
         self.scanfrm = ttk.Frame(tabControl)
@@ -459,14 +462,15 @@ class scanFrame():
         self.detCheck_entry = tk.Entry(self.scanfrm, width=5, textvariable=self.detCheck_val,
                                   validate='all', validatecommand=(vcmd, "%P"))
         self.detCheck_entry.grid(row = 24, column=5, sticky='w', padx=(150,0))
-
+        
+        # Default to enable detector monitor
+        detMonitor_btn.invoke()
      
         self.scmsg = tk.Text(self.scanfrm, wrap = 'word', height = 15, width = 139)
         self.scmsg.grid(row = 24, column = 1, sticky = 'w', columnspan = 5, 
                         rowspan = 8, padx=(20,0), pady=(5,0))
 
-        #TODO: Uncomment this when the textbox is working
-        # stdoutToTextbox(self.scmsg)
+        stdoutToTextbox(self.scmsg)
         
         row = 23
         clearsclist_btn = tk.Button(self.scanfrm, text = 'Clear all', command = self.slist.clearSclist, width = 20)
