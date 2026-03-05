@@ -295,18 +295,34 @@ class setupFrame:
                 self.y = self.h5["/MAPS/y_axis"][()]
                 pvlist = self.h5["/MAPS/extra_pvs"][0].astype(str).tolist()
                 pvval = self.h5["/MAPS/extra_pvs"][1].astype(str).tolist()
+
+                print(f"before self.detectors: {dets}")
+
+                print(f"pvlist: {pvlist}")
+                print(f"pvvalue: {pvval}")
+
+
                 if len(pvlist) < 5:
                     self.file_z = None
                     self.file_theta = None
                 
                 else:
-                    self.file_z = float(
-                        pvval[pvlist.index(self.pvComm.pvs["z_value_Act"].pv.pvname)]
-                    )
-                    self.file_theta = float(
-                        pvval[pvlist.index(self.pvComm.pvs["sm_rot_Act"].pv.pvname)]
-                    )
+                    try:
+                        self.file_z = float(
+                            pvval[pvlist.index(self.pvComm.pvs["z_value_Act"].pv.pvname)]
+                        )
+                        self.file_theta = float(
+                            pvval[pvlist.index(self.pvComm.pvs["sm_rot_Act"].pv.pvname)]
+                        )
+                    except:
+                        print("Not able to get sample-z and theta from .h5... getting it from mda")
+                        mda_file = os.path.join(self.xrf_folder.get().replace("img.dat", "mda"), self.xrf_file_combobox.get().split(".h5")[0])
+                        mda_positions = get_mda_positioners(mda_file, get_z = True, get_theta = True)
+                        self.file_z = mda_positions['z_pos']
+                        self.file_theta = mda_positions['theta_pos']
                 
+
+
                 self.Image2D = self.Axe2D.imshow(
                     elmScalers[i_det],
                     aspect="equal",

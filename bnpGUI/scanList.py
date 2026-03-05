@@ -95,7 +95,7 @@ class scanList(object):
                 t_inc = float(self.scanParms['theta_inc'].get())
                 t_max = float(self.scanParms['theta_max'].get()) + t_inc
                 angles = np.arange(t_min, t_max, t_inc)
-                angles = angles if t_min > 0 else angles[::-1]
+                # angles = angles if t_min > 0 else angles[::-1]
                 
                 for a in angles:
                     self.insertParmEntry(theta=a)

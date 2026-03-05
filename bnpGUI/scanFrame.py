@@ -12,7 +12,7 @@ from scanList import scanList
 from misc import checkEntryDigit
 #from bnpScan import bnpScan, 
 from pvComm import pvComm
-from scanBNP import xrfSetup, scanStart, scanFinish, getCoordinate, getMotorList
+from scanBNP import xrfSetup, scanStart, scanFinish, getCoordinate, getMotorList, getCoordinate_ptycho
 from logger import stdoutToTextbox
 import time, datetime
 import pandas as pd
@@ -73,8 +73,12 @@ class scanFrame():
         self.updateRecord()
     
     def checkFineScanCoord(self):
-        fine_coor = getCoordinate(self.pvComm, self.coarse_scnum, 
-                                  self.scdic)
+        if self.scdic['elm'] == 'ptycho':
+            fine_coor = getCoordinate_ptycho(self.pvComm, self.coarse_scnum, 
+                                             self.scdic)
+        else:
+            fine_coor = getCoordinate(self.pvComm, self.coarse_scnum, 
+                                      self.scdic)
         if fine_coor is not None:
             self.updateXYZcoor(fine_coor)
             self.motors = xrfSetup(self.pvComm, self.scdic)

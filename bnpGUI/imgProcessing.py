@@ -58,6 +58,14 @@ def getROIcoordinate_data(elmmap, x_pos, y_pos, savefig = True, figpath = None, 
     
     if savefig:
         fig.savefig(figpath, dpi=100, transparent=True)
+        for i in range(n_cluster):
+            m = np.array(kmeanMap[0]==i, dtype='int')
+            intensity = m * elmmap
+            fig, ax = plt.subplots()
+            ax.imshow(intensity, cmap='inferno')
+            figpath = figpath.replace('.png', '_cluster_%d_intensity.png'%(i))
+            fig.savefig(figpath, dpi=100, transparent=True)
+            # print('Cluster %d intensity: %f'%(i, intensity))
         
     return new_x, new_y, width, height
 
@@ -84,6 +92,7 @@ def getElmMap(fname, elm):
     with h5py.File(fname, 'r') as dat:
         xrfdata = dat['/MAPS/XRF_roi'][:]
         try:
+            print(dat['/MAPS/channel_names'][:].astype('U13').tolist())
             ch_idx = dat['/MAPS/channel_names'][:].astype('U13').tolist().index(elm)
             elmmap = xrfdata[ch_idx,:,:]
             x_pos = dat['/MAPS/x_axis'][:]
