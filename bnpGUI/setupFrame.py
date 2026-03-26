@@ -287,8 +287,8 @@ class setupFrame:
                     + self.h5["/MAPS/scaler_names"][:].astype(str).tolist()
                 )
                 elmScalers = np.vstack(
-                    (self.h5["/MAPS/XRF_roi"][:], self.h5["/MAPS/scalers"][:])
-                )
+                    (self.h5["/MAPS/XRF_roi_plus"][:], self.h5["/MAPS/scalers"][:])
+                ) # changed to _plus on 3/13/2026
                 self.detector_combobox["values"] = dets
                 self.detector_combobox.current(i_det)
                 self.x = self.h5["/MAPS/x_axis"][()]
@@ -350,8 +350,9 @@ class setupFrame:
     def plot_data(self, *args):
         i_det = self.detector_combobox.current()
         elmScalers = np.vstack(
-            (self.h5["/MAPS/XRF_roi"][:], self.h5["/MAPS/scalers"][:])
+            (self.h5["/MAPS/XRF_roi_plus"][:], self.h5["/MAPS/scalers"][:])
         )
+        # change to XRF_roi_plus on 3/13/2026
 
         img_data = self.Image2D.get_array()
         plot_data = np.array(elmScalers[i_det])

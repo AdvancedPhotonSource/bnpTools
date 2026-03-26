@@ -12,6 +12,11 @@ import numpy as np
 #from imgProcessing import *
 import pandas as pd
 
+sscan = "9idbBNP:"
+inner = "scan1"
+outer = "scan2"
+saveData_basePV = "bnpsft"
+
 class bnpScan():
     
     def __init__(self, userdir, logfile):
@@ -115,16 +120,16 @@ class bnpScan():
                'z_value_Rqs':'9idbTAU:SM:SZ:RqsPos', 'z_value_Act':'9idbTAU:SM:SZ:ActPos',
                'tomo_rot_Rqs':'9idbTAU:SM:CT:RqsPos', 'tomo_rot_Act':'9idbTAU:SM:CT:ActPos',
                'sm_rot_Rqs':'9idbTAU:SM:ST:RqsPos', 'sm_rot_Act':'9idbTAU:SM:ST:ActPos',
-               'x_width':'9idbBNP:scan1.P1WD', 'y_width':'9idbBNP:scan2.P1WD',
-               'x_step':'9idbBNP:scan1.P1SI', 'y_step':'9idbBNP:scan2.P1SI',
-               'dwell':'9idbBNP:scanTran3.C', 'BDA_pos':'9idbTAU:UA:UX:RqsPos',
+               'x_width':f'{sscan}{inner}.P1WD', 'y_width':f'{sscan}{outer}.P1WD',
+               'x_step':f'{sscan}{inner}.P1SI', 'y_step':f'{sscan}{outer}.P1SI',
+               'dwell':f'{saveData_basePV}:scanTran3.C', 'BDA_pos':'9idbTAU:UA:UX:RqsPos',
                
                'x_motorMode':'9idbTAU:SM:Ps:xMotionChoice.VAL',
                'y_motorMode':'9idbTAU:SY:Ps:yMotionChoice.VAL',
-               'x_setcenter':'9idbBNP:aoRecord11.PROC', 'y_setcenter':'9idbBNP:aoRecord12.PROC',
+               'x_setcenter':f'{saveData_basePV}:aoRecord11.PROC', 'y_setcenter':f'{saveData_basePV}:aoRecord12.PROC',
                'piezo_xCenter':'9idbTAU:SM:Ps:xCenter.PROC',
                'piezo_yCenter':'9idbTAU:SY:Ps:yCenter.PROC',
-               'tot_lines':'9idbBNP:scan2.NPTS', 'cur_lines':'9idbBNP:scan2.CPT',
+               'tot_lines':f'{sscan}{outer}.NPTS', 'cur_lines':f'{sscan}{outer}.CPT',
                'temp':'9idbCRYO:CryoCon1:In_3:Temp.VAL',
                
                'CryoCon1:In_1':'9idbCRYO:CryoCon1:In_1:Temp.VAL',
@@ -134,8 +139,8 @@ class bnpScan():
                'CryoCon3:Loop_2':'9idbCRYO:CryoCon3:Loop_2:SetControl.VAL',
                
                
-               'run':'9idbBNP:scan2.EXSC',
-               'fname_saveData':'9idbBNP:saveData_fileName'
+               'run':f'{sscan}{outer}.EXSC',
+               'fname_saveData':f'{saveData_basePV}:saveData_fileName'
                }
         return pvs
     

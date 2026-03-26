@@ -114,6 +114,7 @@ class scanFrame():
                 
     def checkEigerReady(self):
         # check detector triger on scan record
+        #! commenting out to not overwrite current PV trigers fabricio
         self.pvComm.updateDetectorTriger(int(self.scdic['ptycho']))
         
         # if ptycho is checked
@@ -164,6 +165,8 @@ class scanFrame():
 
     def scanMonitor(self, *args, **kwargs):
         ms = 1000
+
+        # print(f"Inner scan status: {self.pvComm.pvs['msg1d'].pv.get()}")
         
         if self.pause & self.scanning:
             if self.pvComm.pvs['wait_val'].pv.get() == 0:
@@ -176,6 +179,7 @@ class scanFrame():
                     self.pvComm.centerPiezoY()
                     self.checkYCenterValue()
                 elif self.detector_resetting:   # it will enter here when detector reset is successful
+                    # print("Detector reset successful, continuing scan")
                     self.checkDetectorStatus()
                 else:
                     self.abort_btn['state'] = tk.NORMAL
@@ -183,6 +187,7 @@ class scanFrame():
                     self.resume_btn['state'] = tk.NORMAL  
                     
             elif self.pvComm.pvs['msg1d'].pv.get() != 'SCAN Complete':
+                # print("Running scan, msg1d is not complete")
                 if self.ycenter_check:
                     self.checkDetectorStatus()
                 if self.detector_resetting:
@@ -222,6 +227,7 @@ class scanFrame():
                         self.det_reset_attemp = 0
                         self.cline = 0
                     self.pbarUpdate()
+                    # print(f"{self.det_reset_attemp =}, {self.detector_resetting =}")
                     self.checkDetectorStatus()
                     self.logTempPV()
                     self.monitormsg.set('Scanning... will be done at: %s'%self.eta_str)
@@ -290,9 +296,11 @@ class scanFrame():
                     self.pause = False
                     self.pvComm.initCurLineTimer()
                     self.pvComm.scanResume()
+                    # print("In the 1st if check")
                     
                 elif all([time_delta > time_check, 
                         self.det_reset_attemp < max_attemp]):
+                    # print("In the 2nd if check")
                     if not self.detector_resetting:
                         self.pause = True
                         self.detector_resetting = True
@@ -301,12 +309,14 @@ class scanFrame():
                         
                     # self.pvComm.resetDetector()  # put it here to handle the case when 1st line hangs
                     self.monitormsg.set('Scan hungs... Resetting detector')
+                    print(f"{self.pause =}, {self.detector_resetting =}, {self.det_reset_attemp =}")
                     print('line %d: time per line %.2f, reset when time larger than %.2f, number of attamp: %d'
                           %(self.cline, time_delta, time_check, self.det_reset_attemp))
                         
                 elif time_delta < time_check:
                     self.cline = cline
                     self.det_reset_attemp = 0
+                    #print("In the 3rd if check")
                 elif self.det_reset_attemp > max_attemp:
                     print('Scan hungs... Reach detector reset limit... Need to try reset manually')
 

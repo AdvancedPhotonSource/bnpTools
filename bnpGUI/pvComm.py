@@ -68,12 +68,17 @@ class pvComm():
         self.pvs['abort'].put_callback(1)
         
     def resetDetector(self, ptychoEnable):
+        print("Resetting detector is called")
         time.sleep(1)
-        self.pvs['xmap_stp'].put_callback(1)
+        # self.pvs['xmap_stp'].put_callback(1)
+        self.pvs['xmap_stp'].put_callback(0)
         time.sleep(1)
-        self.pvs['netCDF_stp'].put_callback(0)
+        # self.pvs['netCDF_stp'].put_callback(0)
+        self.pvs['netCDF_stp'].pv.put(0)
+        print("Stopping xp3 hdf5 capture")
         time.sleep(1)
-        self.pvs['mcs_stp'].put_callback(0)
+        self.pvs['mcs_stp'].put_callback(1) # change in 2026-1
+        # self.pvs['mcs_stp'].put_callback(0)
         
         if ptychoEnable:
             self.eiger.cam.Acquire = 0
@@ -84,6 +89,13 @@ class pvComm():
     def updateDetectorTriger(self, ptychoEnable):
         s = self.pvs['scan2Record']
         dtriger_pvs = scan2RecordDetectorTrigerPVs()
+        
+        
+        # s.T1PV = dtriger_pvs['eigerAcquire'] if ptychoEnable else ''
+        # s.T2PV = dtriger_pvs['eigerFileCapture'] if ptychoEnable else ''
+        # s.T3PV = ''
+        # s.T4PV = dtriger_pvs['scan1']
+
         s.T1PV = dtriger_pvs['scan1']
         s.T4PV = ''
         s.T2PV = dtriger_pvs['eigerAcquire'] if ptychoEnable else ''

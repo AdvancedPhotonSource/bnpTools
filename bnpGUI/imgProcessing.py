@@ -90,15 +90,16 @@ def plotBBox(elmmap, box, x_pos, y_pos):
 def getElmMap(fname, elm):
     elmmap = []
     with h5py.File(fname, 'r') as dat:
-        xrfdata = dat['/MAPS/XRF_roi'][:]
+        xrfdata = dat['/MAPS/XRF_roi_plus'][:]  #changed on 3/13/2026 by Junjing and Si
         try:
-            print(dat['/MAPS/channel_names'][:].astype('U13').tolist())
-            ch_idx = dat['/MAPS/channel_names'][:].astype('U13').tolist().index(elm)
+            print(dat['/MAPS/channel_names'][:].astype('U30').tolist())
+            ch_idx = dat['/MAPS/channel_names'][:].astype('U30').tolist().index(elm)
             elmmap = xrfdata[ch_idx,:,:]
             x_pos = dat['/MAPS/x_axis'][:]
             y_pos = dat['/MAPS/y_axis'][:]
         except:
             raise ValueError('Invalid element! %s is not in channel list'%(elm))
+    print(f'{ch_idx=}')
     return elmmap, x_pos, y_pos
 
 
